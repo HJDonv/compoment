@@ -86,7 +86,7 @@ uint32_t __d_kfifo_len(struct d_kfifo_t *d_kfifo)
 
 uint32_t __d_kfifo_is_full(struct d_kfifo_t *d_kfifo)
 {
-    return (d_kfifo->size - 1) == (__d_kfifo_len());
+    return d_kfifo->in > d_kfifo->size;
 }
 
 uint32_t __d_kfifo_is_empty(struct d_kfifo_t *d_kfifo)
