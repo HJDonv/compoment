@@ -2,18 +2,24 @@
 
 
 
+
+
+
 /* size 必须是 2的次幂 */
-uint32_t d_kfifo_init(d_kfifo_t d_kfifo, uint8_t *p_buff, uint32_t size) 
+uint32_t d_kfifo_init(d_kfifo_t *d_kfifo, uint8_t *p_buffer, uint32_t size) 
 {    
     d_kfifo->p_buffer = p_buffer;
     d_kfifo->size     = size;
     d_kfifo->in       = 0;
     d_kfifo->out      = 0;
+    d_kfifo->mask     = size - 1;
 
     return 0;
 }
 
-uint32_t __d_kfifo_put(struct d_kfifo_t *d_kfifo, uint8_t *p_buffer, uint32_t len)   
+
+
+uint32_t d_kfifo_in(d_kfifo_t *d_kfifo, uint8_t *p_buffer, uint32_t len)   
 {
     uint32_t L;
     
@@ -30,9 +36,9 @@ uint32_t __d_kfifo_put(struct d_kfifo_t *d_kfifo, uint8_t *p_buffer, uint32_t le
     * 所以fifo->size - (fifo->in & (fifo->size - L)) 即位 fifo->in 到 buffer末尾所剩余的长度，
     * L取len和剩余长度的最小值，即为需要拷贝L 字节到fifo->buffer + fifo->in的位置上。
     */ 
-    L = min(len, d_kfifo->size - (d_kfifo->in & (d_kfifo->size - 1)));
+    L = min(len, d_kfifo->size - (d_kfifo->in & d_kfifo->mask));
     
-    memcpy(d_kfifo->p_buffer + (d_kfifo->in & (d_kfifo->size - 1)), p_buffer, L);   
+    memcpy(d_kfifo->p_buffer + (d_kfifo->in & d_kfifo->mask), p_buffer, L);   
   
     /* then put the rest (if any) at the beginning of the buffer */ 
 
@@ -53,15 +59,15 @@ uint32_t __d_kfifo_put(struct d_kfifo_t *d_kfifo, uint8_t *p_buffer, uint32_t le
 
 
 
-uint32_t __d_kfifo_get(struct d_kfifo_t *d_kfifo, uint8_t *p_buffer, uint32_t len)   
+uint32_t d_kfifo_out(d_kfifo_t *d_kfifo, uint8_t *p_buffer, uint32_t len)   
 {
     uint32_t L;   
   
     len = min(len, d_kfifo->in - d_kfifo->out);   
 
     /* first get the data from fifo->out until the end of the buffer */   
-    L = min(len, d_kfifo->size - (d_kfifo->out & (d_kfifo->size - 1)));   
-    memcpy(p_buffer, d_kfifo->p_buffer + (d_kfifo->out & (d_kfifo->size - 1)), L);   
+    L = min(len, d_kfifo->size - (d_kfifo->out & d_kfifo->mask));   
+    memcpy(p_buffer, d_kfifo->p_buffer + (d_kfifo->out & d_kfifo->mask), L);   
   
     /* then get the rest (if any) from the beginning of the buffer */   
     memcpy(p_buffer + L, d_kfifo->p_buffer, len - L);   
@@ -79,17 +85,44 @@ uint32_t __d_kfifo_get(struct d_kfifo_t *d_kfifo, uint8_t *p_buffer, uint32_t le
 }
 
 
-uint32_t __d_kfifo_len(struct d_kfifo_t *d_kfifo)
+uint32_t d_kfifo_len(d_kfifo_t *d_kfifo)
 {
     return d_kfifo->in - d_kfifo->out;
 }
 
-uint32_t __d_kfifo_is_full(struct d_kfifo_t *d_kfifo)
+uint32_t d_kfifo_is_full(d_kfifo_t *d_kfifo)
 {
-    return __d_kfifo_len() > d_kfifo->size;
+    return d_kfifo_len(d_kfifo) > d_kfifo->size;
 }
 
-uint32_t __d_kfifo_is_empty(struct d_kfifo_t *d_kfifo)
+uint32_t d_kfifo_is_empty(d_kfifo_t *d_kfifo)
 {
     return d_kfifo->in == d_kfifo->out;
+}
+
+uint32_t d_kfifo_put(d_kfifo_t *d_kfifo, uint8_t  val)
+{
+    uint32_t ret;
+
+    ret = !d_kfifo_is_full(d_kfifo);
+    if (ret) {
+        d_kfifo->p_buffer[d_kfifo->in & d_kfifo->mask] = val;
+
+        d_kfifo->in++;
+    }
+
+    return ret;
+}
+
+uint32_t d_kfifo_get(d_kfifo_t *d_kfifo, uint8_t *val)
+{
+    uint32_t ret;
+    
+    ret = !d_kfifo_is_empty(d_kfifo);
+    if (ret) {
+        *val = d_kfifo->p_buffer[d_kfifo->out & d_kfifo->mask];
+        d_kfifo->out++;
+    }
+
+    return ret;
 }
