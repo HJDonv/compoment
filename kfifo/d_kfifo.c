@@ -1,10 +1,5 @@
 #include "d_kfifo.h"
 
-
-
-
-
-
 /* size 必须是 2的次幂 */
 uint32_t d_kfifo_init(d_kfifo_t *d_kfifo, uint8_t *p_buffer, uint32_t size) 
 {    
@@ -17,7 +12,15 @@ uint32_t d_kfifo_init(d_kfifo_t *d_kfifo, uint8_t *p_buffer, uint32_t size)
     return 0;
 }
 
-
+uint32_t d_kfifo_deinit(d_kfifo_t *d_kfifo)
+{
+    d_kfifo->in = d_kfifo->out = 0;
+    d_kfifo->size = 0;
+    d_kfifo->mask = 0;
+    d_kfifo->p_buffer = NULL;
+    
+    return 0;
+}
 
 uint32_t d_kfifo_in(d_kfifo_t *d_kfifo, uint8_t *p_buffer, uint32_t len)   
 {
@@ -125,4 +128,21 @@ uint32_t d_kfifo_get(d_kfifo_t *d_kfifo, uint8_t *val)
     }
 
     return ret;
+}
+
+uint32_t d_kfifo_peek_out(d_kfifo_t *d_kfifo, uint8_t *p_buffer, uint32_t len, uint32_t offset)
+{
+    len = min(d_kfifo_len(d_kfifo), len + offset);
+    
+    uint32_t L;
+    
+    offset = (d_kfifo->out + offset) & d_kfifo->mask;
+    
+    L = min(len, d_kfifo->size - offset);
+    
+    memcpy(p_buffer, d_kfifo->p_buffer + offset, L);
+    
+    memcpy(p_buffer + L, d_kfifo->p_buffer, len - L);
+    
+    return len;
 }
