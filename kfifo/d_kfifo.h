@@ -26,4 +26,5 @@ uint32_t d_kfifo_is_full(d_kfifo_t *d_kfifo);
 uint32_t d_kfifo_put(d_kfifo_t *d_kfifo, uint8_t  val);
 uint32_t d_kfifo_get(d_kfifo_t *d_kfifo, uint8_t *val);
 uint32_t d_kfifo_peek_out(d_kfifo_t *d_kfifo, uint8_t *p_buffer, uint32_t len, uint32_t offset); /* offset指的是偏移out的距离 */
+uint32_t d_kfifo_flush(d_kfifo_t *d_kfifo);
 #endif

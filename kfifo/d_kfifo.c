@@ -22,6 +22,15 @@ uint32_t d_kfifo_deinit(d_kfifo_t *d_kfifo)
     return 0;
 }
 
+uint32_t d_kfifo_flush(d_kfifo_t *d_kfifo)
+{
+    d_kfifo->in = d_kfifo->out = 0;
+
+    return 0;
+}
+    
+    
+
 uint32_t d_kfifo_in(d_kfifo_t *d_kfifo, uint8_t *p_buffer, uint32_t len)   
 {
     uint32_t L;
