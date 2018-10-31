@@ -104,7 +104,7 @@ uint32_t d_kfifo_len(d_kfifo_t *d_kfifo)
 
 uint32_t d_kfifo_is_full(d_kfifo_t *d_kfifo)
 {
-    return d_kfifo_len(d_kfifo) > d_kfifo->size;
+    return d_kfifo_len(d_kfifo) > d_kfifo->mask;
 }
 
 uint32_t d_kfifo_is_empty(d_kfifo_t *d_kfifo)
