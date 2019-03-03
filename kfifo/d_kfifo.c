@@ -22,16 +22,28 @@ uint32_t d_kfifo_deinit(d_kfifo_t *d_kfifo)
     return 0;
 }
 
-uint32_t d_kfifo_flush(d_kfifo_t *d_kfifo)
+static uint32_t __d_kfifo_flush(d_kfifo_t *d_kfifo)
 {
+    
     d_kfifo->in = d_kfifo->out = 0;
-
+    
     return 0;
 }
-    
-    
 
-uint32_t d_kfifo_in(d_kfifo_t *d_kfifo, uint8_t *p_buffer, uint32_t len)   
+uint32_t d_kfifo_flush(d_kfifo_t *d_kfifo)
+{
+    uint32_t ret;
+    
+    D_KFIFO_CRITICAL_REGION_ENTER();
+
+    ret = __d_kfifo_flush(d_kfifo);
+
+    D_KFIFO_CRITICAL_REGION_EXIT();
+
+    return ret;
+}
+
+static uint32_t __d_kfifo_in(d_kfifo_t *d_kfifo, uint8_t *p_buffer, uint32_t len)   
 {
     uint32_t L;
     
@@ -65,13 +77,24 @@ uint32_t d_kfifo_in(d_kfifo_t *d_kfifo, uint8_t *p_buffer, uint32_t len)
   
     d_kfifo->in += len; 
         
-    /*返回值 代表  写入数据的个数 ，这样 就可以根据返回值 判断缓冲区是否写满*/
+    /*返回值代表写入数据的个数 ，这样 就可以根据返回值 判断缓冲区是否写满*/
     return len;   
 }  
 
+uint32_t d_kfifo_in(d_kfifo_t *d_kfifo, uint8_t *p_buffer, uint32_t len) 
+{
+    uint32_t ret;
 
+    D_KFIFO_CRITICAL_REGION_ENTER();
 
-uint32_t d_kfifo_out(d_kfifo_t *d_kfifo, uint8_t *p_buffer, uint32_t len)   
+    ret = __d_kfifo_in(d_kfifo, p_buffer, len);
+
+    D_KFIFO_CRITICAL_REGION_EXIT();
+
+    return ret;    
+}
+
+static uint32_t __d_kfifo_out(d_kfifo_t *d_kfifo, uint8_t *p_buffer, uint32_t len)   
 {
     uint32_t L;   
   
@@ -96,23 +119,94 @@ uint32_t d_kfifo_out(d_kfifo_t *d_kfifo, uint8_t *p_buffer, uint32_t len)
     return len;  
 }
 
+uint32_t d_kfifo_out(d_kfifo_t *d_kfifo, uint8_t *p_buffer, uint32_t len)
+{
+    uint32_t ret;
 
-uint32_t d_kfifo_len(d_kfifo_t *d_kfifo)
+    D_KFIFO_CRITICAL_REGION_ENTER();
+
+    ret = __d_kfifo_out(d_kfifo, p_buffer, len);
+
+    D_KFIFO_CRITICAL_REGION_EXIT();
+
+    return ret;    
+}
+
+static uint32_t __d_kfifo_len(d_kfifo_t *d_kfifo)
 {
     return d_kfifo->in - d_kfifo->out;
 }
 
-uint32_t d_kfifo_is_full(d_kfifo_t *d_kfifo)
+uint32_t d_kfifo_len(d_kfifo_t *d_kfifo)
+{
+    uint32_t ret;
+
+    D_KFIFO_CRITICAL_REGION_ENTER();
+
+    ret = __d_kfifo_len(d_kfifo);
+        
+    D_KFIFO_CRITICAL_REGION_EXIT();
+
+    return ret;
+}
+
+static uint32_t __d_kfifo_avail(d_kfifo_t *d_kfifo)
+{
+    return d_kfifo->size - d_kfifo_len(d_kfifo);
+}
+
+uint32_t d_kfifo_avail(d_kfifo_t *d_kfifo)
+{
+    uint32_t ret;
+
+    D_KFIFO_CRITICAL_REGION_ENTER(); 
+
+    ret = __d_kfifo_avail(d_kfifo);
+
+    D_KFIFO_CRITICAL_REGION_EXIT();
+
+    return ret;
+}
+
+static uint32_t __d_kfifo_is_full(d_kfifo_t *d_kfifo)
 {
     return d_kfifo_len(d_kfifo) > d_kfifo->mask;
 }
 
-uint32_t d_kfifo_is_empty(d_kfifo_t *d_kfifo)
+uint32_t d_kfifo_is_full(d_kfifo_t *d_kfifo)
+{
+    uint32_t ret;
+
+    D_KFIFO_CRITICAL_REGION_ENTER(); 
+
+    ret = __d_kfifo_is_full(d_kfifo);
+
+    D_KFIFO_CRITICAL_REGION_EXIT();
+
+    return ret;
+}
+
+
+
+static uint32_t __d_kfifo_is_empty(d_kfifo_t *d_kfifo)
 {
     return d_kfifo->in == d_kfifo->out;
 }
 
-uint32_t d_kfifo_put(d_kfifo_t *d_kfifo, uint8_t  val)
+uint32_t d_kfifo_is_empty(d_kfifo_t *d_kfifo)
+{
+    uint32_t ret;
+
+    D_KFIFO_CRITICAL_REGION_ENTER(); 
+
+    ret = __d_kfifo_is_empty(d_kfifo);
+
+    D_KFIFO_CRITICAL_REGION_EXIT();
+
+    return ret;    
+}
+
+static uint32_t __d_kfifo_put(d_kfifo_t *d_kfifo, uint8_t  val)
 {
     uint32_t ret;
 
@@ -126,7 +220,20 @@ uint32_t d_kfifo_put(d_kfifo_t *d_kfifo, uint8_t  val)
     return ret;
 }
 
-uint32_t d_kfifo_get(d_kfifo_t *d_kfifo, uint8_t *val)
+uint32_t d_kfifo_put(d_kfifo_t *d_kfifo, uint8_t  val)
+{
+    uint32_t ret;
+
+    D_KFIFO_CRITICAL_REGION_ENTER(); 
+
+    ret = __d_kfifo_put(d_kfifo, val);
+
+    D_KFIFO_CRITICAL_REGION_EXIT();
+
+    return ret;  
+}
+
+static uint32_t __d_kfifo_get(d_kfifo_t *d_kfifo, uint8_t *val)
 {
     uint32_t ret;
     
@@ -139,7 +246,21 @@ uint32_t d_kfifo_get(d_kfifo_t *d_kfifo, uint8_t *val)
     return ret;
 }
 
-uint32_t d_kfifo_peek_out(d_kfifo_t *d_kfifo, uint8_t *p_buffer, uint32_t len, uint32_t offset)
+uint32_t d_kfifo_get(d_kfifo_t *d_kfifo, uint8_t *val)
+{
+    uint32_t ret;
+
+    D_KFIFO_CRITICAL_REGION_ENTER(); 
+
+    ret = __d_kfifo_get(d_kfifo, val);
+
+    D_KFIFO_CRITICAL_REGION_EXIT();
+
+    return ret;
+}
+
+
+static uint32_t __d_kfifo_peek_out(d_kfifo_t *d_kfifo, uint8_t *p_buffer, uint32_t len, uint32_t offset)
 {
     len = min(d_kfifo_len(d_kfifo), len + offset);
     
@@ -154,4 +275,17 @@ uint32_t d_kfifo_peek_out(d_kfifo_t *d_kfifo, uint8_t *p_buffer, uint32_t len, u
     memcpy(p_buffer + L, d_kfifo->p_buffer, len - L);
     
     return len;
+}
+
+uint32_t d_kfifo_peek_out(d_kfifo_t *d_kfifo, uint8_t *p_buffer, uint32_t len, uint32_t offset)
+{
+    uint32_t ret;
+
+    D_KFIFO_CRITICAL_REGION_ENTER(); 
+
+    ret = __d_kfifo_peek_out(d_kfifo, p_buffer, len, offset);
+
+    D_KFIFO_CRITICAL_REGION_EXIT();
+
+    return ret;
 }
